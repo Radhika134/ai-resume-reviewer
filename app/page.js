@@ -50,7 +50,7 @@ export default function Home() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-medium tracking-wide uppercase">
           <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-          Powered by Claude AI
+          Powered by AI
         </div>
 
         {/* Main heading */}
@@ -65,7 +65,7 @@ export default function Home() {
         <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
           Upload your resume and get instant feedback, score, and suggestions
           powered by{" "}
-          <span className="text-purple-400 font-medium">Claude AI</span>.
+          <span className="text-purple-400 font-medium">Advanced AI</span>.
           Land your dream job faster.
         </p>
 
@@ -272,7 +272,7 @@ export default function Home() {
                 step: "02",
                 icon: "🧠",
                 title: "AI Analyzes It",
-                desc: "Claude AI reads every line, checking for clarity, impact, ATS compatibility, and keyword relevance.",
+                desc: "The AI reads every line, checking for clarity, impact, ATS compatibility, and keyword relevance.",
               },
               {
                 step: "03",
@@ -353,7 +353,7 @@ export default function Home() {
             Built with{" "}
             <span className="text-red-400">❤️</span>{" "}
             using{" "}
-            <span className="text-purple-400 font-medium">Claude AI</span>
+            <span className="text-purple-400 font-medium">AI</span>
           </p>
 
           {/* Links */}

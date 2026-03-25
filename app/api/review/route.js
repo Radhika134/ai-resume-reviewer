@@ -28,6 +28,12 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+    if (resumeText.length > 30000) {
+      return Response.json(
+        { error: "Resume text is too long. Please constrain it to about 5-6 pages maximum." },
+        { status: 400 }
+      );
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {

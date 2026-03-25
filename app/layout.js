@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "ResumeAI — AI-Powered Resume Reviewer",
   description:
-    "Upload your resume and get instant feedback, score, and smart suggestions powered by Claude AI. Free to use, no signup required.",
-  keywords: "AI resume reviewer, resume feedback, ATS checker, resume score, Claude AI",
+    "Upload your resume and get instant feedback, score, and smart suggestions powered by AI. Free to use, no signup required.",
+  keywords: "AI resume reviewer, resume feedback, ATS checker, resume score, AI",
 };
 
 export default function RootLayout({ children }) {

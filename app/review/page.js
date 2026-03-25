@@ -384,7 +384,12 @@ function DownloadPDFButton({ results, jobRole }) {
       };
 
       const checkPage = (needed = 20) => {
-        if (y + needed > 275) { doc.addPage(); y = 20; }
+        if (y + needed > 275) { 
+          doc.addPage(); 
+          y = 20; 
+          doc.setFillColor(15, 15, 20);
+          doc.rect(0, 0, pageW, 297, "F");
+        }
       };
 
       // Header
@@ -495,7 +500,7 @@ function DownloadPDFButton({ results, jobRole }) {
             doc.setFontSize(8.5);
             doc.setFont("helvetica", passed ? "bold" : "normal");
             doc.setTextColor(passed ? 34 : 239, passed ? 197 : 68, passed ? 94 : 68);
-            doc.text(`${passed ? "✓" : "✗"} ${lbl}`, x, y);
+            doc.text(`${passed ? "[PASS]" : "[FAIL]"} ${lbl}`, x, y);
           });
           y += 7;
         }
@@ -506,12 +511,12 @@ function DownloadPDFButton({ results, jobRole }) {
       if (results.strengths?.length) {
         checkPage(25);
         doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(34,197,94);
-        doc.text("💪 Strengths", margin, y); y += 7;
+        doc.text("Strengths", margin, y); y += 7;
         results.strengths.forEach((s) => {
           checkPage(14);
           doc.setFillColor(20,50,30); doc.roundedRect(margin, y-3, colW, 10, 2, 2, "F");
           doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(160,230,180);
-          const lines = doc.splitTextToSize(`• ${s}`, colW - 6);
+          const lines = doc.splitTextToSize(`- ${s}`, colW - 6);
           doc.text(lines, margin + 3, y + 1);
           y += lines.length * 4 + 5;
         });
@@ -522,12 +527,12 @@ function DownloadPDFButton({ results, jobRole }) {
       if (results.weaknesses?.length) {
         checkPage(25);
         doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(239,68,68);
-        doc.text("⚠️ Areas to Improve", margin, y); y += 7;
+        doc.text("Areas to Improve", margin, y); y += 7;
         results.weaknesses.forEach((w) => {
           checkPage(14);
           doc.setFillColor(50,15,15); doc.roundedRect(margin, y-3, colW, 10, 2, 2, "F");
           doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(240,150,150);
-          const lines = doc.splitTextToSize(`• ${w}`, colW - 6);
+          const lines = doc.splitTextToSize(`- ${w}`, colW - 6);
           doc.text(lines, margin + 3, y + 1);
           y += lines.length * 4 + 5;
         });
@@ -538,7 +543,7 @@ function DownloadPDFButton({ results, jobRole }) {
       if (results.suggestions?.length) {
         checkPage(25);
         doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(167,139,250);
-        doc.text("✨ AI Suggestions", margin, y); y += 7;
+        doc.text("AI Suggestions", margin, y); y += 7;
         results.suggestions.forEach((s, i) => {
           checkPage(14);
           doc.setFillColor(30,15,50); doc.roundedRect(margin, y-3, colW, 10, 2, 2, "F");
@@ -613,12 +618,23 @@ export default function ReviewPage() {
   const [animateScore, setAnimateScore] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfFileName, setPdfFileName] = useState("");
+  const [cooldown, setCooldown] = useState(0);
   const resultsRef = useRef(null);
   const fileInputRef = useRef(null);
   const { history, addEntry, clearHistory } = useScoreHistory();
 
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => {
+        setCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   async function handleAnalyze() {
-    if (!resumeText.trim() || loading) return;
+    if (!resumeText.trim() || loading || cooldown > 0) return;
     setLoading(true); setResults(null); setError(null);
     setShowConfetti(false); setAnimateScore(false);
     try {
@@ -631,6 +647,7 @@ export default function ReviewPage() {
       if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
       setResults(data);
       addEntry(data.score ?? 0, jobRole);
+      setCooldown(60);
       setTimeout(() => {
         setAnimateScore(true);
         if ((data.score ?? 0) >= 80) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 5000); }
@@ -720,7 +737,7 @@ export default function ReviewPage() {
           <div className="flex items-center gap-3">
             <span className="hidden sm:flex items-center gap-1.5 text-xs dark:text-gray-400 text-slate-600 border dark:border-white/10 border-slate-200 dark:bg-white/5 bg-white shadow-sm dark:shadow-none px-3 py-1.5 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Gemini AI Ready
+              AI Ready
             </span>
             <ThemeToggle />
             <Link href="/" className="text-sm dark:text-gray-400 text-slate-600 dark:dark:hover:text-white text-slate-900 hover:text-slate-900 transition-colors">← Back to Home</Link>
@@ -822,21 +839,28 @@ export default function ReviewPage() {
               <button
                 id="analyze-btn"
                 onClick={handleAnalyze}
-                disabled={!canAnalyze}
+                disabled={!canAnalyze || cooldown > 0}
                 className={`mt-5 w-full flex items-center justify-center gap-3 py-3.5 rounded-xl font-bold text-base transition-all duration-300 ${
-                  canAnalyze
+                  (canAnalyze && cooldown === 0)
                     ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/30 hover:scale-[1.02] active:scale-[0.98]"
                     : "dark:bg-white/5 bg-white shadow-sm dark:shadow-none dark:text-gray-500 text-slate-500 cursor-not-allowed border dark:border-white/5 border-slate-200"
                 }`}
               >
                 {loading ? (
-                  <><svg className="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Analyzing with Gemini AI…</span></>
+                  <><svg className="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Analyzing with AI…</span></>
+                ) : cooldown > 0 ? (
+                  <span className="text-purple-600 dark:text-purple-400">Please wait {cooldown}s before next analysis</span>
                 ) : (
                   <span>Analyze My Resume{jobRole ? ` for ${jobRole}` : ""} →</span>
                 )}
               </button>
 
-              {!resumeText.trim() && <p className="mt-3 text-center text-xs dark:text-gray-600 text-slate-400">Paste at least a few lines to enable analysis</p>}
+              {cooldown > 0 && (
+                <div className="mt-3 text-center text-xs font-medium text-purple-600 dark:text-purple-400">
+                  ⏳ Free tier limit - ready again in {cooldown}s
+                </div>
+              )}
+              {!resumeText.trim() && cooldown === 0 && <p className="mt-3 text-center text-xs dark:text-gray-600 text-slate-400">Paste at least a few lines to enable analysis</p>}
             </div>
 
             {/* Score history */}
@@ -891,7 +915,7 @@ export default function ReviewPage() {
                 </div>
                 <div className="text-center">
                   <p className="dark:text-white text-slate-900 font-semibold text-lg">Analyzing your resume…</p>
-                  <p className="dark:text-gray-500 text-slate-500 text-sm mt-1">{jobRole ? `Tailoring feedback for ${jobRole}` : "Gemini AI is reading every line"}</p>
+                  <p className="dark:text-gray-500 text-slate-500 text-sm mt-1">{jobRole ? `Tailoring feedback for ${jobRole}` : "AI is reading every line"}</p>
                 </div>
                 <div className="w-full max-w-sm space-y-3 mt-2">
                   {[80, 60, 90, 50].map((w, i) => <div key={i} className="h-3 rounded-full dark:bg-white/5 bg-white shadow-sm dark:shadow-none animate-pulse" style={{ width: `${w}%` }} />)}
@@ -1002,7 +1026,7 @@ export default function ReviewPage() {
                     <div className="flex items-center gap-2 mb-5">
                       <span className="text-lg">✨</span>
                       <h3 className="text-base font-bold dark:text-purple-300 text-purple-700 tracking-tight">AI Suggestions</h3>
-                      <span className="ml-auto text-[10px] font-medium text-purple-400 border border-purple-500/25 dark:bg-purple-500/10 bg-purple-100 px-2 py-0.5 rounded-full">Powered by Gemini</span>
+                      <span className="ml-auto text-[10px] font-medium text-purple-400 border border-purple-500/25 dark:bg-purple-500/10 bg-purple-100 px-2 py-0.5 rounded-full">Powered by AI</span>
                     </div>
                     <ul className="space-y-3">
                       {results.suggestions.map((s, i) => (
