@@ -1,6 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ────────────────────────────────────────────────────────
+# Dependencies
+# ────────────────────────────────────────────────────────
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +10,76 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# ────────────────────────────────────────────────────────
+# Next.js build output
+# ────────────────────────────────────────────────────────
 /.next/
 /out/
-
-# production
 /build
 
-# misc
-.DS_Store
-*.pem
+# ────────────────────────────────────────────────────────
+# Environment files — NEVER commit these
+# ────────────────────────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
 
-# debug
+# ────────────────────────────────────────────────────────
+# Vercel deployment artifacts
+# ────────────────────────────────────────────────────────
+.vercel
+
+# ────────────────────────────────────────────────────────
+# Testing
+# ────────────────────────────────────────────────────────
+/coverage
+
+# ────────────────────────────────────────────────────────
+# Debug logs
+# ────────────────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# ────────────────────────────────────────────────────────
+# OS files
+# ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# vercel
-.vercel
+# ────────────────────────────────────────────────────────
+# Certificates / secrets
+# ────────────────────────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.pfx
 
-# typescript
+# ────────────────────────────────────────────────────────
+# TypeScript
+# ────────────────────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+
+# ────────────────────────────────────────────────────────
+# Editor & IDE
+# ────────────────────────────────────────────────────────
+.vscode/settings.json
+.vscode/launch.json
+*.code-workspace
+*.suo
+*.user
+.idea/
+
+# ────────────────────────────────────────────────────────
+# AI agent instruction files (not for public repos)
+# ────────────────────────────────────────────────────────
+AGENTS.md
+CLAUDE.md

@@ -20,7 +20,7 @@ export async function POST(request) {
 
     /* ── 1. Validate input ── */
     const body = await request.json();
-    const { resumeText, jobRole } = body;
+    const { resumeText, jobRole, jobDescription } = body;
 
     if (!resumeText || typeof resumeText !== "string" || resumeText.trim().length < 20) {
       return Response.json(
@@ -44,41 +44,41 @@ export async function POST(request) {
     }
 
     /* ── 2. Build prompt ── */
-    const roleContext = jobRole?.trim()
+    const hasJobDesc = !!jobDescription?.trim();
+
+    let roleContext = jobRole?.trim()
       ? `The candidate is targeting the role: "${jobRole.trim()}". Tailor all feedback, suggestions, and scoring specifically for this role.`
       : `No specific role was provided. Give general resume advice.`;
 
+    if (hasJobDesc) {
+      roleContext += `\n\nJob Description:\n${jobDescription.trim()}\n\nSince a job description is provided, populate "missingKeywords" with 5 keywords from the JD missing in the resume, "projectSuggestions" with 3 specific project ideas to strengthen this resume for the role, and "rewrittenBullets" with 2 bullet point rewrites ({ original, improved }) tailored to the job. Set "matchPercentage" to the % match between resume and JD.`;
+    }
+
     const prompt = `You are an expert resume reviewer and career coach. ${roleContext}
 
-Analyze the resume below and respond ONLY with a valid JSON object matching this exact schema (no markdown, no explanation, pure JSON):
+- score: number 0-100 (overall resume strength)
 
-{
-  "score": <overall number 0-100>,
-  "atsReady": <true or false>,
-  "keywords": "<Strong or Average or Weak>",
-  "formatting": "<Clean or Average or Messy>",
-  "matchPercentage": <number 0-100, ONLY if role is provided, otherwise null>,
-  "matchAnalysis": "<short thoughtful 1-2 sentence analysis of how well they fit the role, if role provided>",
-  "strengths": ["<string>", "<string>", "<string>"],
-  "weaknesses": ["<string>", "<string>", "<string>"],
-  "suggestions": ["<string>", "<string>", "<string>"],
-  "sectionScores": {
-    "experience": <0-100>,
-    "skills": <0-100>,
-    "education": <0-100>,
-    "formatting": <0-100>,
-    "impact": <0-100>
-  },
-  "skillTags": ["<skill>", "<skill>", ...],
-  "checklist": {
-    "hasContactInfo": <true or false>,
-    "hasLinkedIn": <true or false>,
-    "hasMetrics": <true or false>,
-    "hasActionVerbs": <true or false>,
-    "hasSummary": <true or false>,
-    "hasCertifications": <true or false>
-  }
-}
+SCORING RUBRIC (BE STRICT):
+1. EXPERIENCE (0-100): High score for quantifiable achievements (%, $, numbers) and clear impact. Low score for task-only descriptions.
+2. SKILLS (0-100): High score for unique domain-relevant skills substantiated in job bullets.
+3. IMPACT (0-100): High score for strong action verbs and outcome-focused writing.
+4. FORMATTING (0-100): High score for consistency, white space, and logical flow.
+5. EDUCATION (0-100): High for relevant degrees and certifications.
+
+- atsReady: boolean
+- keywords: "Strong" | "Average" | "Weak"
+- formatting: "Clean" | "Average" | "Messy"
+- matchPercentage: number 0-100 (% match to role/JD if provided, else 0)
+- matchAnalysis: string (1-2 sentences on role fit; empty string "" if no role given)
+- strengths: array of exactly 3 strings
+- weaknesses: array of exactly 3 strings
+- suggestions: array of exactly 3 strings
+- sectionScores: object with keys experience, skills, education, formatting, impact — each 0-100
+- skillTags: array of skill strings detected in resume
+- checklist: object with boolean fields hasContactInfo, hasLinkedIn, hasMetrics, hasActionVerbs, hasSummary, hasCertifications
+- missingKeywords: ${hasJobDesc ? "array of exactly 5 important keywords from the JD that are missing from the resume" : "empty array []"}
+- projectSuggestions: ${hasJobDesc ? "array of exactly 3 specific project ideas tailored to strengthen this resume for this role" : "empty array []"}
+- rewrittenBullets: ${hasJobDesc ? "array of exactly 2 objects, each with \"original\" (a bullet from the resume) and \"improved\" (a rewritten version tailored to the JD)" : "empty array []"}
 
 Resume:
 ${resumeText.trim()}`;
@@ -93,47 +93,61 @@ ${resumeText.trim()}`;
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192,
             responseMimeType: "application/json",
             responseSchema: {
               type: "OBJECT",
               properties: {
-                score: { type: "NUMBER" },
-                atsReady: { type: "BOOLEAN" },
-                keywords: { type: "STRING" },
-                formatting: { type: "STRING" },
-                matchPercentage: { type: "NUMBER", nullable: true },
-                matchAnalysis: { type: "STRING", nullable: true },
-                strengths: { type: "ARRAY", items: { type: "STRING" } },
-                weaknesses: { type: "ARRAY", items: { type: "STRING" } },
-                suggestions: { type: "ARRAY", items: { type: "STRING" } },
+                score:            { type: "NUMBER" },
+                atsReady:         { type: "BOOLEAN" },
+                keywords:         { type: "STRING" },
+                formatting:       { type: "STRING" },
+                matchPercentage:  { type: "NUMBER" },
+                matchAnalysis:    { type: "STRING" },
+                strengths:        { type: "ARRAY", items: { type: "STRING" } },
+                weaknesses:       { type: "ARRAY", items: { type: "STRING" } },
+                suggestions:      { type: "ARRAY", items: { type: "STRING" } },
                 sectionScores: {
                   type: "OBJECT",
                   properties: {
                     experience: { type: "NUMBER" },
-                    skills: { type: "NUMBER" },
-                    education: { type: "NUMBER" },
+                    skills:     { type: "NUMBER" },
+                    education:  { type: "NUMBER" },
                     formatting: { type: "NUMBER" },
-                    impact: { type: "NUMBER" },
+                    impact:     { type: "NUMBER" },
                   },
                 },
                 skillTags: { type: "ARRAY", items: { type: "STRING" } },
                 checklist: {
                   type: "OBJECT",
                   properties: {
-                    hasContactInfo: { type: "BOOLEAN" },
-                    hasLinkedIn: { type: "BOOLEAN" },
-                    hasMetrics: { type: "BOOLEAN" },
-                    hasActionVerbs: { type: "BOOLEAN" },
-                    hasSummary: { type: "BOOLEAN" },
+                    hasContactInfo:    { type: "BOOLEAN" },
+                    hasLinkedIn:       { type: "BOOLEAN" },
+                    hasMetrics:        { type: "BOOLEAN" },
+                    hasActionVerbs:    { type: "BOOLEAN" },
+                    hasSummary:        { type: "BOOLEAN" },
                     hasCertifications: { type: "BOOLEAN" },
+                  },
+                },
+                missingKeywords:    { type: "ARRAY", items: { type: "STRING" } },
+                projectSuggestions: { type: "ARRAY", items: { type: "STRING" } },
+                rewrittenBullets: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      original: { type: "STRING" },
+                      improved: { type: "STRING" },
+                    },
                   },
                 },
               },
               required: [
                 "score", "atsReady", "keywords", "formatting",
+                "matchPercentage", "matchAnalysis",
                 "strengths", "weaknesses", "suggestions",
                 "sectionScores", "skillTags", "checklist",
+                "missingKeywords", "projectSuggestions", "rewrittenBullets",
               ],
             },
           },

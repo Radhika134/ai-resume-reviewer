@@ -16,11 +16,13 @@ It runs locally on your machine or deployed via Vercel, bypassing the need for e
 ---
 
 ## 💻 Tech Stack
-*   **Next.js 15** (App Router)
+*   **Next.js 16** (App Router)
 *   **React 19**
-*   **TailwindCSS v4** (With glassmorphism `bg-white/[0.03]` patterns)
-*   **Gemini AI API** (`gemini-2.5-flash`)
-*   **pdfjs-dist**, **jsPDF**, **html2canvas**, **next-themes**
+*   **TailwindCSS v4**
+*   **Google Gemini API** (`gemini-2.5-flash`)
+*   **pdfjs-dist** (client-side PDF parsing)
+*   **jsPDF** (PDF report generation)
+*   **next-themes** (dark / light mode)
 
 ---
 
@@ -34,12 +36,15 @@ It runs locally on your machine or deployed via Vercel, bypassing the need for e
    ```
 
 2. **Set up your API Key:**
-   Create a file inside the root directory named exactly `.env.local`.
-   Open the file and add your Gemini API Developer Key:
+   Copy the example env file and fill in your key:
+   ```bash
+   copy .env.example .env.local
+   ```
+   Then edit `.env.local` and add your Gemini API key:
    ```env
    GEMINI_API_KEY=your_gemini_key_here
    ```
-   *You can get a completely free key from [Google AI Studio](https://aistudio.google.com/app/apikey).*
+   *Get a completely free key from [Google AI Studio](https://aistudio.google.com/app/apikey).*
 
 3. **Start the Development Server:**
    ```bash
