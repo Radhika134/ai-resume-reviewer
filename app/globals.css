@@ -70,20 +70,18 @@ html {
   animation: shimmer 4s linear infinite;
 }
 
-/* Fade-in up animation */
+/* Fade-in up animation — used by both landing cards and result cards */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in-up {
   animation: fadeInUp 0.7s ease forwards;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease forwards;
 }
 
 .delay-100 { animation-delay: 0.1s; }
@@ -99,15 +97,5 @@ html {
 
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
-}
-
-/* fadeInUp — used by result cards */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fadeInUp {
-  animation: fadeInUp 0.5s ease forwards;
 }
 
