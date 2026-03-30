@@ -8,18 +8,33 @@ const glass = {
   borderRadius: "16px",
 };
 
-export function JobMatchAnalysis({ results }) {
-  const hasJobMatchData =
-    results.matchPercentage != null ||
-    results.missingKeywords?.length > 0 ||
-    results.projectSuggestions?.length > 0 ||
-    results.rewrittenBullets?.length > 0;
+export function JobMatchAnalysis({ results, hasJobDescription }) {
+  const hasMissingKeywords     = results.missingKeywords?.length > 0;
+  const hasProjectSuggestions  = results.projectSuggestions?.length > 0;
+  const hasRewrittenBullets    = results.rewrittenBullets?.length > 0;
+  // matchPercentage is always returned by API (even as 0 when no JD), so only
+  // treat it as "real" data when a JD was actually provided AND value is > 0.
+  const hasMatchPercentage     = hasJobDescription && typeof results.matchPercentage === "number" && results.matchPercentage > 0;
+  // "hasAnyData" means the AI actually produced JD-specific results
+  const hasAnyData             = hasMissingKeywords || hasProjectSuggestions || hasRewrittenBullets || hasMatchPercentage;
 
-  if (!hasJobMatchData) {
+  // If no JD was provided — always show the prompt to add one
+  if (!hasJobDescription) {
     return (
       <div className="p-6 text-center animate-fadeInUp" style={glass}>
         <p className="text-sm leading-relaxed" style={{ color: "rgba(249,168,212,0.5)" }}>
-          💡 Add a job description above to get personalized keyword and project suggestions
+          💡 Add a job description above to get personalized keyword gaps, project ideas, and a JD match score
+        </p>
+      </div>
+    );
+  }
+
+  // If JD was provided but AI returned nothing (edge case) — show hint
+  if (hasJobDescription && !hasAnyData) {
+    return (
+      <div className="p-6 text-center animate-fadeInUp" style={glass}>
+        <p className="text-sm leading-relaxed" style={{ color: "rgba(249,168,212,0.5)" }}>
+          ⚙️ Job match data could not be generated. Try re-analyzing with the job description.
         </p>
       </div>
     );
