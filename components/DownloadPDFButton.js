@@ -99,8 +99,8 @@ export function DownloadPDFButton({ results, jobRole }) {
       ================================================================ */
       paintBg();
 
-      /* purple header band */
-      doc.setFillColor(72, 32, 150);
+      /* rose gold header band */
+      doc.setFillColor(180, 20, 90);
       doc.rect(0, 0, PAGE_W, 34, "F");
 
       /* logo */
@@ -108,13 +108,13 @@ export function DownloadPDFButton({ results, jobRole }) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
       doc.text("Resume", MARGIN, 15);
-      doc.setTextColor(168, 120, 255);
+      doc.setTextColor(255, 180, 200);
       doc.text("AI", MARGIN + 32, 15);
 
       /* subtitle */
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(190, 170, 240);
+      doc.setTextColor(255, 220, 230);
       doc.text("AI-Powered Resume Analysis Report", MARGIN, 23);
 
       /* date top-right */
@@ -129,7 +129,7 @@ export function DownloadPDFButton({ results, jobRole }) {
       if (jobRole?.trim()) {
         doc.setFontSize(8.5);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(168, 120, 255);
+        doc.setTextColor(180, 20, 90);
         doc.text("TARGET ROLE", MARGIN, y);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(220, 220, 230);
@@ -483,8 +483,8 @@ export function DownloadPDFButton({ results, jobRole }) {
         disabled={downloading}
         className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
           downloading
-            ? "bg-purple-500/20 border border-purple-500/40 text-purple-400 cursor-wait"
-            : "bg-purple-600/20 border border-purple-500/30 dark:text-purple-300 text-purple-700 hover:bg-purple-600/30 hover:scale-105"
+            ? "bg-rose-500/20 border border-rose-500/40 text-rose-400 cursor-wait"
+            : "bg-rose-600/20 border border-rose-500/30 dark:text-rose-300 text-rose-700 hover:bg-rose-600/30 hover:scale-105"
         }`}
       >
         {downloading ? (

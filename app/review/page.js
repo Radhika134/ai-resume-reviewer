@@ -4,10 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// Shared utilities
 import { badgeColors } from "@/lib/utils";
-
-// Components
 import { ScoreRing }        from "@/components/ScoreRing";
 import { SectionScores }    from "@/components/SectionScores";
 import { JobMatchAnalysis } from "@/components/JobMatchAnalysis";
@@ -17,14 +14,31 @@ import { Checklist }        from "@/components/Checklist";
 import { FeedbackCard }     from "@/components/FeedbackCard";
 import { ConfettiEffect }   from "@/components/ConfettiEffect";
 
-/* ─── Badge builder ────────────────────────────────────────────── */
+/* ─── Rose-Gold badge color overrides ──────────────────────────── */
+const RG_BADGE = {
+  emerald: { bg: "rgba(34,197,94,0.12)",  border: "rgba(34,197,94,0.3)",   text: "#86efac" },
+  red:     { bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)",   text: "#fca5a5" },
+  pink:    { bg: "rgba(225,29,116,0.12)", border: "rgba(225,29,116,0.3)",  text: "#f9a8d4" },
+  gold:    { bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)",  text: "#fde68a" },
+  blue:    { bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)",  text: "#93c5fd" },
+};
+
 function buildBadges(data) {
   return [
-    { label: "ATS Ready", value: data.atsReady ? "✓ Pass" : "✗ Fail", color: data.atsReady ? "emerald" : "red" },
-    { label: "Keywords",  value: data.keywords ?? "—",  color: data.keywords === "Strong" ? "purple" : data.keywords === "Weak" ? "red" : "blue" },
-    { label: "Formatting", value: data.formatting ?? "—", color: data.formatting === "Clean" ? "blue" : data.formatting === "Messy" ? "red" : "purple" },
+    { label: "ATS Ready",  value: data.atsReady ? "✓ Pass" : "✗ Fail", ck: data.atsReady ? "emerald" : "red" },
+    { label: "Keywords",   value: data.keywords ?? "—",                  ck: data.keywords === "Strong" ? "pink" : data.keywords === "Weak" ? "red" : "gold" },
+    { label: "Formatting", value: data.formatting ?? "—",                ck: data.formatting === "Clean" ? "gold" : data.formatting === "Messy" ? "red" : "blue" },
   ];
 }
+
+/* ─── Glass panel style helper ─────────────────────────────────── */
+const glass = {
+  background: "rgba(255,20,100,0.04)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(225,29,116,0.15)",
+  borderRadius: "16px",
+};
 
 /* ─── Copy Analysis Button ─────────────────────────────────────── */
 function CopyAnalysisButton({ results, jobRole }) {
@@ -35,125 +49,62 @@ function CopyAnalysisButton({ results, jobRole }) {
     lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     lines.push("  ResumeAI — Analysis Report");
     lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    if (jobRole?.trim()) {
-      lines.push(`🎯 Target Role : ${jobRole.trim()}`);
-    }
+    if (jobRole?.trim()) lines.push(`🎯 Target Role : ${jobRole.trim()}`);
     lines.push(`⭐ AI Score    : ${results.score ?? "—"} / 100`);
     lines.push(`🤖 ATS Ready   : ${results.atsReady ? "✓ Yes" : "✗ No"}`);
     lines.push(`🔑 Keywords    : ${results.keywords ?? "—"}`);
     lines.push(`📐 Formatting  : ${results.formatting ?? "—"}`);
-    if (results.matchPercentage != null && results.matchPercentage > 0) {
-      lines.push(`🎯 JD Match    : ${results.matchPercentage}%`);
-    }
-
-    if (results.sectionScores) {
-      lines.push("");
-      lines.push("📊 Section Scores");
-      lines.push("─────────────────");
-      const s = results.sectionScores;
-      ["experience","skills","education","formatting","impact"].forEach(k => {
-        const label = k.charAt(0).toUpperCase() + k.slice(1);
-        lines.push(`  ${label.padEnd(12)} ${s[k] ?? 0}/100`);
-      });
-    }
-
+    if (results.matchPercentage > 0) lines.push(`🎯 JD Match    : ${results.matchPercentage}%`);
     if (results.strengths?.length) {
-      lines.push("");
-      lines.push("💪 Strengths");
-      lines.push("─────────────────");
+      lines.push(""); lines.push("💪 Strengths"); lines.push("─────────────────");
       results.strengths.forEach(s => lines.push(`  • ${s}`));
     }
-
     if (results.weaknesses?.length) {
-      lines.push("");
-      lines.push("⚠️  Improvements Needed");
-      lines.push("─────────────────");
+      lines.push(""); lines.push("⚠️  Improvements"); lines.push("─────────────────");
       results.weaknesses.forEach(w => lines.push(`  • ${w}`));
     }
-
-    if (results.suggestions?.length) {
-      lines.push("");
-      lines.push("💡 Strategy Advice");
-      lines.push("─────────────────");
-      results.suggestions.forEach(s => lines.push(`  • ${s}`));
-    }
-
     if (results.missingKeywords?.length) {
-      lines.push("");
-      lines.push("🔍 Missing Keywords");
-      lines.push("─────────────────");
+      lines.push(""); lines.push("🔍 Missing Keywords");
       lines.push(`  ${results.missingKeywords.join(" · ")}`);
     }
-
-    lines.push("");
-    lines.push(`Generated by ResumeAI • ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`);
-
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    lines.push(""); lines.push(`Generated by ResumeAI • ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`);
+    try { await navigator.clipboard.writeText(lines.join("\n")); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
   }
 
   return (
     <button
       onClick={handleCopy}
-      className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 border ${
-        copied
-          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 scale-95"
-          : "dark:bg-white/5 bg-slate-100 dark:border-white/10 border-slate-200 dark:text-gray-400 text-slate-600 hover:text-purple-500 hover:border-purple-500/30 hover:dark:bg-purple-500/5 hover:bg-purple-50 hover:scale-105"
-      }`}
+      className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300"
+      style={copied
+        ? { background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", color: "#86efac" }
+        : { ...glass, borderRadius: "9999px", color: "var(--text-muted)" }
+      }
     >
       {copied ? (
-        <>
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-          </svg>
-          Copied!
-        </>
+        <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>Copied!</>
       ) : (
-        <>
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v1"/>
-          </svg>
-          Copy Analysis
-        </>
+        <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v1"/></svg>Copy Analysis</>
       )}
     </button>
   );
 }
-
 
 /* ─── Score History Hook ───────────────────────────────────────── */
 const HISTORY_KEY = "resumeai_score_history";
 function useScoreHistory() {
   const [history, setHistory] = useState([]);
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      if (raw) setHistory(JSON.parse(raw));
-    } catch {}
+    try { const raw = localStorage.getItem(HISTORY_KEY); if (raw) setHistory(JSON.parse(raw)); } catch {}
   }, []);
-
   function addEntry(score, role) {
-    const entry = {
-      score,
-      role: role || "General",
-      date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
-      ts: Date.now(),
-    };
-    setHistory((prev) => {
+    const entry = { score, role: role || "General", date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short" }), ts: Date.now() };
+    setHistory(prev => {
       const next = [entry, ...prev].slice(0, 8);
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   }
-
-  function clearHistory() {
-    setHistory([]);
-    try { localStorage.removeItem(HISTORY_KEY); } catch {}
-  }
-
+  function clearHistory() { setHistory([]); try { localStorage.removeItem(HISTORY_KEY); } catch {} }
   return { history, addEntry, clearHistory };
 }
 
@@ -171,29 +122,20 @@ export default function ReviewPage() {
   const [pdfFileName, setPdfFileName]       = useState("");
   const [cooldown, setCooldown]             = useState(0);
 
-  const resultsRef    = useRef(null);
-  const fileInputRef  = useRef(null);
-  const cooldownRef   = useRef(null);
+  const resultsRef   = useRef(null);
+  const fileInputRef = useRef(null);
+  const cooldownRef  = useRef(null);
   const { history, addEntry, clearHistory } = useScoreHistory();
 
   function startCooldown(seconds = 60) {
     setCooldown(seconds);
     clearInterval(cooldownRef.current);
     cooldownRef.current = setInterval(() => {
-      setCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(cooldownRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCooldown(prev => { if (prev <= 1) { clearInterval(cooldownRef.current); return 0; } return prev - 1; });
     }, 1000);
   }
-
-  /* Clear interval on unmount */
   useEffect(() => () => clearInterval(cooldownRef.current), []);
 
-  /* PDF upload */
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -209,26 +151,20 @@ export default function ReviewPage() {
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const tc = await page.getTextContent();
-          fullText += tc.items.map((it) => it.str).join(" ") + "\n";
+          fullText += tc.items.map(it => it.str).join(" ") + "\n";
         }
         setResumeText(fullText);
-      } catch (e) {
-        console.error(e);
-        setError("Failed to parse PDF. Please try copy-pasting the text instead.");
-      }
+      } catch (e) { console.error(e); setError("Failed to parse PDF. Please try copy-pasting the text instead."); }
     };
     reader.readAsArrayBuffer(file);
   };
 
-  /* Analyze */
   async function handleAnalyze() {
     if (!resumeText.trim() || loading || cooldown > 0) return;
-    setLoading(true); setResults(null); setError(null);
-    setShowConfetti(false); setAnimateScore(false);
+    setLoading(true); setResults(null); setError(null); setShowConfetti(false); setAnimateScore(false);
     try {
       const res = await fetch("/api/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText, jobRole, jobDescription }),
       });
       const data = await res.json();
@@ -238,39 +174,56 @@ export default function ReviewPage() {
       startCooldown(60);
       setTimeout(() => {
         setAnimateScore(true);
-        if ((data.score ?? 0) >= 80) {
-          setShowConfetti(true);
-          setTimeout(() => setShowConfetti(false), 5000);
-        }
+        if ((data.score ?? 0) >= 80) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 5000); }
         resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 150);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
   }
 
-  const canAnalyze     = resumeText.trim().length > 20 && !loading;
-  const MAX_CHARS      = 30000;
-  const charCount      = resumeText.length;
-  const isNearLimit    = charCount > MAX_CHARS * 0.85;
-  const isOverLimit    = charCount > MAX_CHARS;
+  const canAnalyze  = resumeText.trim().length > 20 && !loading;
+  const MAX_CHARS   = 30000;
+  const charCount   = resumeText.length;
+  const isNearLimit = charCount > MAX_CHARS * 0.85;
+  const isOverLimit = charCount > MAX_CHARS;
+
+  /* ─── Page background ──────────────────────────────────────────── */
+  const pageBg = {
+    background: `
+      radial-gradient(ellipse at top left, rgba(225,29,116,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(245,158,11,0.08) 0%, transparent 50%),
+      var(--bg-primary)
+    `,
+    minHeight: "100vh",
+  };
 
   return (
-    <main className="min-h-screen dark:bg-[#0a0a0a] bg-slate-50 transition-colors duration-300">
+    <main style={pageBg}>
+      {/* Floating ambient orbs */}
+      <div className="orb-pink" aria-hidden="true" />
+      <div className="orb-gold"  aria-hidden="true" />
+
       <ConfettiEffect active={showConfetti} />
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-40 w-full border-b dark:border-white/5 border-slate-200 backdrop-blur-md dark:bg-[#0a0a0a]/80 bg-white/80 transition-colors">
+      <nav
+        className="sticky top-0 z-40 w-full transition-colors"
+        style={{
+          background: "var(--glass-bg)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid var(--glass-border)",
+        }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <span className="text-2xl transition-transform group-hover:rotate-12">✦</span>
-            <span className="text-xl font-bold tracking-tight">Resume<span className="text-purple-500">AI</span></span>
+            <span className="text-xl font-bold tracking-tight">
+              Resume<span className="gradient-text">AI</span>
+            </span>
           </Link>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link href="/" className="text-sm font-medium dark:text-gray-400 text-slate-600 hover:text-purple-500 transition-colors">Home</Link>
+            <Link href="/" className="text-sm font-medium transition-colors" style={{ color: "var(--text-muted)" }}>Home</Link>
           </div>
         </div>
       </nav>
@@ -281,40 +234,47 @@ export default function ReviewPage() {
           {/* ── LEFT: INPUT COLUMN ── */}
           <div className="xl:col-span-5 space-y-8">
             <div className="space-y-2">
-              <h1 className="text-3xl font-extrabold tracking-tight">AI Resume <span className="text-purple-500">Reviewer</span></h1>
-              <p className="dark:text-gray-400 text-slate-600 text-sm">Upload your PDF or paste text to get instant feedback and JD matching.</p>
+              <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: "var(--text-primary)" }}>
+                AI Resume <span className="gradient-text">Reviewer</span>
+              </h1>
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Upload your PDF or paste text to get instant feedback and JD matching.</p>
             </div>
 
             {/* Resume Input */}
             <div className="space-y-4">
               <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFileChange({ target: { files: e.dataTransfer.files } }); }}
-                className={`relative group rounded-3xl border-2 border-dashed transition-all duration-300 ${
-                  dragOver
-                    ? "border-purple-500 bg-purple-500/10 scale-[1.01]"
-                    : "dark:border-white/10 border-slate-200 dark:hover:border-white/20 hover:border-slate-300 dark:bg-white/[0.02] bg-white shadow-sm"
-                }`}
+                onDrop={e => { e.preventDefault(); setDragOver(false); handleFileChange({ target: { files: e.dataTransfer.files } }); }}
+                className="relative group rounded-3xl border-2 border-dashed transition-all duration-300"
+                style={dragOver
+                  ? { borderColor: "#e11d74", background: "rgba(225,29,116,0.10)", transform: "scale(1.01)" }
+                  : { borderColor: "rgba(225,29,116,0.2)", background: "rgba(255,20,100,0.04)", backdropFilter: "blur(12px)" }
+                }
               >
                 <textarea
                   id="resume-textarea"
                   value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
+                  onChange={e => setResumeText(e.target.value)}
                   placeholder="Paste your resume content here or drop a PDF..."
                   maxLength={MAX_CHARS}
-                  className="w-full h-80 bg-transparent border-none focus:ring-0 p-6 pb-10 text-sm dark:text-gray-200 text-slate-700 resize-none font-sans leading-relaxed"
+                  className="w-full h-80 bg-transparent border-none focus:ring-0 p-6 pb-10 text-sm resize-none font-sans leading-relaxed"
+                  style={{ color: "var(--text-primary)", caretColor: "#e11d74" }}
                 />
 
-                {/* Character counter */}
-                <div className={`absolute bottom-14 right-4 text-[10px] font-bold tabular-nums select-none ${
-                  isOverLimit ? "text-red-500" : isNearLimit ? "text-amber-500" : "dark:text-gray-600 text-slate-400"
-                }`}>
+                {/* char counter */}
+                <div
+                  className="absolute bottom-14 right-4 text-[10px] font-bold tabular-nums select-none"
+                  style={{ color: isOverLimit ? "#f87171" : isNearLimit ? "#fbbf24" : "rgba(249,168,212,0.4)" }}
+                >
                   {charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}
                 </div>
 
                 {pdfFileName && (
-                  <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full dark:bg-purple-500/20 bg-purple-100 border dark:border-purple-500/30 border-purple-200 text-[11px] font-bold text-purple-500 animate-in fade-in slide-in-from-top-1">
+                  <div
+                    className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold"
+                    style={{ background: "rgba(225,29,116,0.15)", border: "1px solid rgba(225,29,116,0.3)", color: "var(--text-muted)" }}
+                  >
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {pdfFileName}
                   </div>
@@ -324,7 +284,8 @@ export default function ReviewPage() {
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl dark:bg-white/5 bg-slate-100 border dark:border-white/10 border-slate-200 text-xs font-bold dark:text-gray-400 text-slate-600 dark:hover:bg-white/10 hover:bg-slate-200 transition-all"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                    style={{ ...glass, borderRadius: "12px", color: "var(--text-muted)" }}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" strokeWidth={2}/></svg>
                     Upload PDF
@@ -332,7 +293,8 @@ export default function ReviewPage() {
                   {resumeText && (
                     <button
                       onClick={() => { setResumeText(""); setPdfFileName(""); }}
-                      className="px-3 py-2 rounded-xl dark:bg-red-500/10 bg-red-50 border dark:border-red-500/20 border-red-100 text-xs font-bold text-red-500 hover:bg-red-500/20 transition-all"
+                      className="px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                      style={{ background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5" }}
                     >
                       Clear
                     </button>
@@ -340,57 +302,61 @@ export default function ReviewPage() {
                 </div>
               </div>
 
-              {/* Target Job Role */}
+              {/* Job Role */}
               <div className="space-y-2">
-                <label htmlFor="job-role-input" className="text-xs font-bold uppercase tracking-widest dark:text-gray-500 text-slate-500">
+                <label htmlFor="job-role-input" className="text-xs font-bold uppercase tracking-widest" style={{ color: "rgba(249,168,212,0.6)" }}>
                   Target Job Role
                 </label>
                 <input
                   id="job-role-input"
                   type="text"
                   value={jobRole}
-                  onChange={(e) => setJobRole(e.target.value)}
+                  onChange={e => setJobRole(e.target.value)}
                   placeholder="e.g. Senior Frontend Engineer"
-                  className="w-full px-4 py-3 rounded-2xl dark:bg-white/[0.03] bg-white border dark:border-white/10 border-slate-200 text-sm focus:border-purple-500/50 outline-none transition-all shadow-sm"
+                  className="w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all"
+                  style={{ ...glass, borderRadius: "16px", color: "var(--text-primary)" }}
+                  onFocus={e => { e.target.style.borderColor = "rgba(225,29,116,0.6)"; e.target.style.boxShadow = "0 0 0 3px rgba(225,29,116,0.10)"; }}
+                  onBlur={e => { e.target.style.borderColor = "rgba(225,29,116,0.15)"; e.target.style.boxShadow = "none"; }}
                 />
               </div>
 
-              {/* Job Description — prominent dedicated section */}
+              {/* Job Description */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="job-description-textarea" className="text-xs font-bold uppercase tracking-widest dark:text-gray-500 text-slate-500 flex items-center gap-2">
+                  <label htmlFor="job-description-textarea" className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: "rgba(249,168,212,0.6)" }}>
                     <span>🎯</span> Job Description
-                    <span className="normal-case font-normal text-purple-400/80">(Optional — unlocks JD Match Analysis)</span>
+                    <span className="normal-case font-normal" style={{ color: "rgba(225,29,116,0.7)" }}>(Optional — unlocks JD Match)</span>
                   </label>
                   {jobDescription.trim() && (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] font-bold text-purple-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "rgba(225,29,116,0.10)", border: "1px solid rgba(225,29,116,0.25)", color: "var(--text-muted)" }}>
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#e11d74" }} />
                       JD Active
                     </div>
                   )}
                 </div>
 
-                <div className="relative rounded-2xl border-2 transition-all duration-300 dark:border-white/10 border-slate-200 focus-within:border-purple-500/50 dark:bg-white/[0.02] bg-white shadow-sm overflow-hidden">
+                <div className="relative rounded-2xl border-2 transition-all duration-300 overflow-hidden"
+                  style={{ borderColor: "rgba(225,29,116,0.2)", background: "rgba(255,20,100,0.04)", backdropFilter: "blur(12px)" }}>
                   <textarea
                     id="job-description-textarea"
                     value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    placeholder={"Paste the job description here to get personalized keyword and project suggestions..."}
+                    onChange={e => setJobDescription(e.target.value)}
+                    placeholder="Paste the job description here to get personalized keyword and project suggestions..."
                     rows={5}
-                    className="w-full px-5 py-4 pb-10 bg-transparent border-none focus:ring-0 text-sm dark:text-gray-200 text-slate-700 resize-none font-sans leading-relaxed"
+                    className="w-full px-5 py-4 pb-10 bg-transparent border-none focus:ring-0 text-sm resize-none font-sans leading-relaxed"
+                    style={{ color: "var(--text-primary)", caretColor: "#e11d74" }}
                   />
-
-                  {/* Bottom toolbar */}
                   <div className="absolute bottom-3 right-3 flex items-center gap-2">
                     {!jobDescription.trim() && (
-                      <span className="text-[10px] dark:text-gray-600 text-slate-400 font-medium">
+                      <span className="text-[10px] font-medium" style={{ color: "rgba(249,168,212,0.4)" }}>
                         ✦ Enables match % · missing keywords · project ideas
                       </span>
                     )}
                     {jobDescription && (
                       <button
                         onClick={() => setJobDescription("")}
-                        className="px-2.5 py-1 rounded-lg dark:bg-red-500/10 bg-red-50 border dark:border-red-500/20 border-red-100 text-[10px] font-bold text-red-500 hover:bg-red-500/20 transition-all"
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all"
+                        style={{ background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.2)", color: "#fca5a5" }}
                       >
                         Clear
                       </button>
@@ -398,42 +364,42 @@ export default function ReviewPage() {
                   </div>
                 </div>
 
-                {/* Hint when JD is filled */}
                 {jobDescription.trim() && (
-                  <p className="text-[11px] text-emerald-500 font-medium flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <p className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: "#86efac" }}>
                     <span>✓</span> Job description ready — analysis will include match % and keyword gaps
                   </p>
                 )}
               </div>
 
-
-              <button
-                id="analyze-button"
-                onClick={handleAnalyze}
-                disabled={!canAnalyze || cooldown > 0}
-                className={`w-full group relative flex items-center justify-center gap-3 py-4 rounded-3xl font-bold text-base transition-all duration-500 ${
-                  canAnalyze && cooldown === 0
-                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-xl shadow-purple-600/20 hover:scale-[1.01] active:scale-[0.99]"
-                    : "dark:bg-white/5 bg-white border dark:border-white/10 border-slate-200 dark:text-gray-500 text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                {loading ? (
-                  <>
-                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    Analyzing your career path…
-                  </>
-                ) : cooldown > 0 ? (
-                  <span className="text-purple-500">Cooldown: Wait {cooldown}s</span>
-                ) : (
-                  <>Analyze My Resume <span className="transition-transform group-hover:translate-x-1">→</span></>
-                )}
-              </button>
-
+              {/* Analyze Button */}
+              <div className={canAnalyze && cooldown === 0 ? "gradient-border-wrap" : ""}>
+                <button
+                  id="analyze-button"
+                  onClick={handleAnalyze}
+                  disabled={!canAnalyze || cooldown > 0}
+                  className="w-full group relative flex items-center justify-center gap-3 py-4 rounded-full font-bold text-base transition-all duration-500"
+                  style={canAnalyze && cooldown === 0
+                    ? { background: "linear-gradient(135deg,#b0165a,#c0153f,#c47a08)", color: "white", boxShadow: "0 0 28px rgba(225,29,116,0.40)", borderRadius: "9999px" }
+                    : { ...glass, borderRadius: "9999px", color: "rgba(249,168,212,0.4)", cursor: "not-allowed" }
+                  }
+                >
+                  {loading ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      Analyzing your career path…
+                    </>
+                  ) : cooldown > 0 ? (
+                    <span style={{ color: "var(--text-muted)" }}>Cooldown: Wait {cooldown}s</span>
+                  ) : (
+                    <>Analyze My Resume <span className="transition-transform group-hover:translate-x-1">→</span></>
+                  )}
+                </button>
+              </div>
               {cooldown > 0 && (
-                <p className="text-center text-[10px] uppercase font-black tracking-widest text-purple-500 animate-pulse">
+                <p className="text-center text-[10px] uppercase font-black tracking-widest animate-pulse" style={{ color: "#e11d74" }}>
                   ⏳ Rapid API limits active — ready soon
                 </p>
               )}
@@ -448,43 +414,52 @@ export default function ReviewPage() {
 
             {/* Empty state */}
             {!results && !loading && !error && (
-              <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-center p-12 rounded-[40px] border-2 border-dashed dark:border-white/5 border-slate-200 dark:bg-white/[0.01] bg-white/30 backdrop-blur-sm">
-                <div className="w-20 h-20 rounded-full dark:bg-white/5 bg-purple-100 flex items-center justify-center text-3xl mb-6 grayscale opacity-50">📑</div>
-                <h2 className="text-xl font-bold dark:text-gray-400 text-slate-500 mb-2">Ready to Analyze</h2>
-                <p className="dark:text-gray-600 text-slate-400 text-sm max-w-xs leading-relaxed">
+              <div
+                className="h-full min-h-[500px] flex flex-col items-center justify-center text-center p-12 rounded-[40px] border-2 border-dashed"
+                style={{ borderColor: "rgba(225,29,116,0.12)", background: "rgba(255,20,100,0.02)", backdropFilter: "blur(8px)" }}
+              >
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-6 grayscale opacity-50"
+                  style={{ background: "rgba(225,29,116,0.08)" }}
+                >
+                  📑
+                </div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: "rgba(249,168,212,0.6)" }}>Ready to Analyze</h2>
+                <p className="text-sm max-w-xs leading-relaxed" style={{ color: "rgba(249,168,212,0.4)" }}>
                   Your professional analysis will appear here. We check for ATS compatibility, keyword density, and role-specific match.
                 </p>
               </div>
             )}
 
-            {/* Loading state */}
+            {/* Loading */}
             {loading && (
               <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in zoom-in duration-700">
                 <div className="relative w-24 h-24">
-                  <div className="absolute inset-0 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin" />
-                  <div className="absolute inset-4 rounded-full border-4 border-purple-500/10 border-b-purple-400 animate-spin-slow" />
+                  <div className="absolute inset-0 rounded-full border-4 border-t-[#e11d74] animate-spin" style={{ borderColor: "rgba(225,29,116,0.20)", borderTopColor: "#e11d74" }} />
+                  <div className="absolute inset-4 rounded-full border-4 animate-spin-slow" style={{ borderColor: "rgba(245,158,11,0.15)", borderBottomColor: "#f59e0b" }} />
                   <div className="absolute inset-0 flex items-center justify-center text-2xl animate-pulse">🧠</div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-lg font-bold">The AI is reading every line…</p>
+                  <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>The AI is reading every line…</p>
                   <div className="flex justify-center gap-1.5">
                     {[0,1,2].map(i => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                      <div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#e11d74", animationDelay: `${i*150}ms` }} />
                     ))}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Error state */}
+            {/* Error */}
             {error && (
-              <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center space-y-4 shadow-lg shadow-red-500/5">
-                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center text-2xl mx-auto">⚠️</div>
-                <h3 className="text-red-500 font-bold text-lg">Analysis Error</h3>
-                <p className="text-sm dark:text-red-400/80 text-red-700 leading-relaxed max-w-md mx-auto">{error}</p>
+              <div className="rounded-3xl p-8 text-center space-y-4" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl mx-auto" style={{ background: "rgba(239,68,68,0.15)" }}>⚠️</div>
+                <h3 className="font-bold text-lg" style={{ color: "#fca5a5" }}>Analysis Error</h3>
+                <p className="text-sm leading-relaxed max-w-md mx-auto" style={{ color: "rgba(252,165,165,0.8)" }}>{error}</p>
                 <button
                   onClick={() => setError(null)}
-                  className="px-6 py-2 rounded-full dark:bg-white/5 bg-red-500/10 dark:text-white text-red-600 text-sm font-bold hover:bg-red-500/20 transition-all border border-red-500/20"
+                  className="px-6 py-2 rounded-full text-sm font-bold transition-all"
+                  style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", color: "#fca5a5" }}
                 >
                   Try Again
                 </button>
@@ -496,28 +471,35 @@ export default function ReviewPage() {
               <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-700 fill-mode-both">
 
                 {/* Header Summary Card */}
-                <div className="rounded-[40px] border dark:border-white/5 border-slate-200 dark:bg-white/[0.03] bg-white shadow-xl dark:shadow-none p-8 relative overflow-hidden group">
+                <div
+                  className="rounded-[40px] p-8 relative overflow-hidden group"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(225,29,116,0.08) 0%, rgba(245,158,11,0.05) 100%)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    border: "1px solid rgba(225,29,116,0.2)",
+                  }}
+                >
                   <div className="absolute top-0 right-0 p-8 opacity-5 transition-transform group-hover:scale-110 duration-700">
                     <span className="text-[120px]">✨</span>
                   </div>
 
-                  {/* Job Role Title Banner */}
+                  {/* Role Banner */}
                   {jobRole.trim() && (
-                    <div className="flex items-center gap-3 mb-6 pb-5 border-b dark:border-white/5 border-slate-100">
-                      <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center gap-3 mb-6 pb-5" style={{ borderBottom: "1px solid rgba(225,29,116,0.12)" }}>
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(225,29,116,0.12)", border: "1px solid rgba(225,29,116,0.2)" }}>
+                        <svg className="w-4 h-4" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-widest dark:text-gray-500 text-slate-400 mb-0.5">
-                          Analysis for Role
-                        </p>
-                        <p className="text-base font-extrabold dark:text-white text-slate-900 tracking-tight truncate">
-                          {jobRole.trim()}
-                        </p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "rgba(249,168,212,0.5)" }}>Analysis for Role</p>
+                        <p className="text-base font-extrabold tracking-tight truncate" style={{ color: "var(--text-primary)" }}>{jobRole.trim()}</p>
                       </div>
-                      <div className="shrink-0 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest dark:bg-purple-500/10 bg-purple-50 border dark:border-purple-500/20 border-purple-200 text-purple-400">
+                      <div
+                        className="shrink-0 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+                        style={{ background: "rgba(225,29,116,0.12)", border: "1px solid rgba(225,29,116,0.25)", color: "var(--text-muted)" }}
+                      >
                         Targeted
                       </div>
                     </div>
@@ -526,22 +508,29 @@ export default function ReviewPage() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-10">
                     <ScoreRing score={results.score} animate={animateScore} />
                     <div className="flex-1 space-y-6 w-full">
+                      {/* Badges */}
                       <div className="flex flex-wrap items-center gap-6 justify-center md:justify-start">
                         {buildBadges(results).map(b => (
                           <div key={b.label} className="flex flex-col gap-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-widest dark:text-gray-500 text-slate-400">{b.label}</span>
-                            <span className={`px-4 py-1.5 rounded-full border text-sm font-black transition-transform hover:scale-110 ${badgeColors[b.color].bg} ${badgeColors[b.color].border} ${badgeColors[b.color].text}`}>
+                            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(249,168,212,0.5)" }}>{b.label}</span>
+                            <span
+                              className="px-4 py-1.5 rounded-full text-sm font-black transition-transform hover:scale-110"
+                              style={{ background: RG_BADGE[b.ck].bg, border: `1px solid ${RG_BADGE[b.ck].border}`, color: RG_BADGE[b.ck].text }}
+                            >
                               {b.value}
                             </span>
                           </div>
                         ))}
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start border-t dark:border-white/5 border-slate-100 pt-6">
+
+                      {/* Action buttons */}
+                      <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start pt-6" style={{ borderTop: "1px solid rgba(225,29,116,0.1)" }}>
                         <DownloadPDFButton results={results} jobRole={jobRole} />
                         <CopyAnalysisButton results={results} jobRole={jobRole} />
                         <button
                           onClick={() => setResults(null)}
-                          className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold dark:bg-white/5 bg-slate-100 dark:text-gray-400 text-slate-600 hover:text-red-500 transition-all border dark:border-white/10 border-slate-200"
+                          className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                          style={{ ...glass, borderRadius: "9999px", color: "#fca5a5" }}
                         >
                           Reset
                         </button>
@@ -556,34 +545,49 @@ export default function ReviewPage() {
                   <Checklist checklist={results.checklist} />
                 </div>
 
-                {/* Job Match Analysis — only shown when JD was provided */}
+                {/* Job Match — only when JD provided */}
                 {jobDescription.trim() && <JobMatchAnalysis results={results} />}
 
                 {/* Strengths + Weaknesses */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FeedbackCard
-                    delay={300} icon="💪" title="Major Strengths"
-                    accentClass="dark:border-emerald-500/20 border-emerald-200"
-                    headerColor="text-emerald-500" dotColor="bg-emerald-500"
+                  <FeedbackCard delay={300} icon="💪" title="Major Strengths"
+                    accentClass="" headerColor="" dotColor=""
                     items={results.strengths}
+                    styleOverride={{
+                      card: { background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "16px", backdropFilter: "blur(16px)" },
+                      title: { color: "#fde68a" },
+                      dot: { background: "#f59e0b" },
+                      item: { color: "#fde68a" },
+                    }}
                   />
-                  <FeedbackCard
-                    delay={350} icon="⚠️" title="Critical Improvements"
-                    accentClass="dark:border-red-500/20 border-red-200"
-                    headerColor="text-red-500" dotColor="bg-red-500"
+                  <FeedbackCard delay={350} icon="⚠️" title="Critical Improvements"
+                    accentClass="" headerColor="" dotColor=""
                     items={results.weaknesses}
+                    styleOverride={{
+                      card: { background: "rgba(225,29,116,0.08)", border: "1px solid rgba(225,29,116,0.2)", borderRadius: "16px", backdropFilter: "blur(16px)" },
+                      title: { color: "#fda4af" },
+                      dot: { background: "#e11d74" },
+                      item: { color: "#fda4af" },
+                    }}
                   />
                 </div>
 
-                {/* Strategy Suggestions */}
-                <div className="rounded-[32px] border dark:border-purple-500/20 border-purple-200 dark:bg-white/[0.03] bg-white p-8 animate-fadeInUp shadow-lg" style={{ animationDelay: "400ms" }}>
+                {/* Smart Strategy */}
+                <div
+                  className="rounded-[32px] p-8 animate-fadeInUp"
+                  style={{ background: "rgba(255,20,100,0.04)", backdropFilter: "blur(20px)", border: "1px solid rgba(225,29,116,0.15)", animationDelay: "400ms" }}
+                >
                   <div className="flex items-center gap-3 mb-6">
                     <span className="text-2xl">💡</span>
-                    <h3 className="text-lg font-bold text-purple-400">Smart Strategy Advice</h3>
+                    <h3 className="text-lg font-bold gradient-text">Smart Strategy Advice</h3>
                   </div>
                   <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {results.suggestions.map((s, i) => (
-                      <li key={i} className="p-4 rounded-2xl dark:bg-purple-500/5 bg-purple-50 border dark:border-purple-500/10 border-purple-100 text-sm leading-relaxed dark:text-purple-100 text-purple-900 font-medium">
+                      <li
+                        key={i}
+                        className="p-4 rounded-2xl text-sm leading-relaxed font-medium"
+                        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(225,29,116,0.15)", color: "var(--text-primary)" }}
+                      >
                         {s}
                       </li>
                     ))}

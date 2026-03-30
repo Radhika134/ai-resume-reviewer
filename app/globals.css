@@ -3,8 +3,35 @@
 @variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  /* ── Rose Gold LIGHT Theme ───────────────────────────────────── */
+  --bg-primary:   #fffcfd;
+  --bg-secondary: #fdf2f5;
+  --accent-pink:  #e11d74;
+  --accent-gold:  #b45309; 
+  --text-primary: #2a0a15;
+  --text-muted:   #8a4a5f;
+  --border-color: rgba(225, 29, 116, 0.25);
+  --card-bg:      rgba(255, 255, 255, 0.8);
+  --background:   var(--bg-primary);
+  --foreground:   var(--text-primary);
+  --glass-bg:     rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(225, 29, 116, 0.2);
+}
+
+.dark {
+  /* ── Rose Gold DARK Theme ────────────────────────────────────── */
+  --bg-primary:   #0d0608;
+  --bg-secondary: #150a10;
+  --accent-pink:  #e11d74;
+  --accent-gold:  #f59e0b;
+  --text-primary: #fce7f3;
+  --text-muted:   #f9a8d4;
+  --border-color: rgba(225, 29, 116, 0.2);
+  --card-bg:      rgba(255, 20, 100, 0.04);
+  --background:   #0d0608;
+  --foreground:   #fce7f3;
+  --glass-bg:     rgba(255, 20, 100, 0.04);
+  --glass-border: rgba(225, 29, 116, 0.15);
 }
 
 @theme inline {
@@ -16,52 +43,54 @@
 
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
+html { scroll-behavior: smooth; }
+
+/* ── Rose Gold Glow utilities ──────────────────────────────────── */
+.glow-rose {
+  box-shadow: 0 0 40px rgba(225, 29, 116, 0.35);
+}
+.glow-rose-sm {
+  box-shadow: 0 0 20px rgba(225, 29, 116, 0.25);
+}
+/* keep purple aliases so landing-page classes still compile */
+.glow-purple    { box-shadow: 0 0 40px rgba(225, 29, 116, 0.35); }
+.glow-purple-sm { box-shadow: 0 0 20px rgba(225, 29, 116, 0.25); }
+
+/* ── Glassmorphism card ─────────────────────────────────────────── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
 }
 
-/* Custom gradient glow */
-.glow-purple {
-  box-shadow: 0 0 40px rgba(147, 51, 234, 0.35);
+/* ── Rose-Gold gradient text ────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #e11d74, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.glow-purple-sm {
-  box-shadow: 0 0 20px rgba(147, 51, 234, 0.25);
-}
-
-/* Animated gradient border */
-@keyframes borderPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-/* Floating animation */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-/* Shimmer effect */
+/* ── Shimmer effect (hero heading) ─────────────────────────────── */
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
 }
-
 .shimmer-text {
   background: linear-gradient(
     90deg,
-    #a855f7 0%,
-    #c084fc 25%,
-    #ffffff 50%,
-    #c084fc 75%,
-    #a855f7 100%
+    #e11d74 0%,
+    #f59e0b 25%,
+    #fce7f3 50%,
+    #f59e0b 75%,
+    #e11d74 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -70,32 +99,89 @@ html {
   animation: shimmer 4s linear infinite;
 }
 
-/* Fade-in up animation — used by both landing cards and result cards */
+/* ── Float animation ────────────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+/* ── FadeInUp ───────────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.7s ease forwards;
-}
-
-.animate-fadeInUp {
-  animation: fadeInUp 0.5s ease forwards;
-}
+.animate-fade-in-up  { animation: fadeInUp 0.7s ease forwards; }
+.animate-fadeInUp    { animation: fadeInUp 0.5s ease forwards; }
 
 .delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }
 .delay-400 { animation-delay: 0.4s; }
 
-/* Slow spin — used in the loading double-ring */
+/* ── Slow spin ──────────────────────────────────────────────────── */
 @keyframes spin-slow {
   from { transform: rotate(360deg); }
   to   { transform: rotate(0deg); }
 }
+.animate-spin-slow { animation: spin-slow 3s linear infinite; }
 
-.animate-spin-slow {
-  animation: spin-slow 3s linear infinite;
+/* ── Border pulse ───────────────────────────────────────────────── */
+@keyframes borderPulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
 }
 
+/* ── Animated gradient border (CTA button wrapper) ──────────────── */
+@keyframes gradientShift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+.gradient-border-wrap {
+  background: linear-gradient(270deg, #e11d74, #f59e0b, #fce7f3, #f59e0b, #e11d74);
+  background-size: 300% 300%;
+  animation: gradientShift 3s ease infinite;
+  border-radius: 9999px;
+  padding: 2px;
+}
+
+/* ── Floating orb pulse ─────────────────────────────────────────── */
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-30px) scale(1.04); }
+}
+.orb-pink {
+  position: fixed;
+  top: -120px;
+  left: -120px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(225,29,116,0.18) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  animation: orbFloat 8s ease-in-out infinite;
+  z-index: 0;
+}
+.orb-gold {
+  position: fixed;
+  bottom: -150px;
+  right: -150px;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%);
+  filter: blur(50px);
+  pointer-events: none;
+  animation: orbFloat 10s ease-in-out infinite reverse;
+  z-index: 0;
+}
+
+/* ── Score number gradient text ─────────────────────────────────── */
+.score-gradient-text {
+  background: linear-gradient(135deg, #e11d74 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

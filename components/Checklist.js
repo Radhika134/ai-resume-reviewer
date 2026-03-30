@@ -1,10 +1,13 @@
 "use client";
 
-/**
- * Checklist — shows a grid of resume fundamentals (pass/fail).
- * Props: checklist: { hasContactInfo, hasLinkedIn, hasMetrics,
- *                     hasActionVerbs, hasSummary, hasCertifications }
- */
+const glass = {
+  background: "rgba(255,20,100,0.04)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(225,29,116,0.15)",
+  borderRadius: "16px",
+};
+
 export function Checklist({ checklist }) {
   if (!checklist) return null;
 
@@ -20,17 +23,12 @@ export function Checklist({ checklist }) {
   const passCount = items.filter(({ key }) => checklist[key]).length;
 
   return (
-    <div
-      className="rounded-2xl border dark:border-white/8 border-slate-200 dark:bg-white/[0.03] bg-white shadow-sm dark:shadow-none p-6 animate-fadeInUp"
-      style={{ animationDelay: "250ms", animationFillMode: "both" }}
-    >
+    <div className="p-6 animate-fadeInUp" style={{ ...glass, animationDelay: "250ms", animationFillMode: "both" }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold dark:text-gray-300 text-slate-700 tracking-wide uppercase flex items-center gap-2">
+        <h3 className="text-sm font-bold tracking-wide uppercase flex items-center gap-2" style={{ color: "#f9a8d4" }}>
           <span>✅</span> Resume Checklist
         </h3>
-        <span className="text-xs font-bold dark:text-gray-400 text-slate-600">
-          {passCount}/{items.length} complete
-        </span>
+        <span className="text-xs font-bold" style={{ color: "rgba(249,168,212,0.5)" }}>{passCount}/{items.length} complete</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {items.map(({ key, label }) => {
@@ -38,11 +36,11 @@ export function Checklist({ checklist }) {
           return (
             <div
               key={key}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-colors ${
-                passed
-                  ? "dark:bg-emerald-500/8 bg-emerald-50/50 dark:border-emerald-500/20 border-emerald-500/10 dark:text-emerald-300 text-emerald-800"
-                  : "dark:bg-red-500/5 bg-red-50/50 dark:border-red-500/15 border-red-200 text-red-500/70"
-              }`}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors"
+              style={passed
+                ? { background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", color: "#86efac" }
+                : { background: "rgba(225,29,116,0.06)", border: "1px solid rgba(225,29,116,0.15)", color: "rgba(252,165,165,0.6)" }
+              }
             >
               <span className="text-base shrink-0">{passed ? "✓" : "✗"}</span>
               {label}
