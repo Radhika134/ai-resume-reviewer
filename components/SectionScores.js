@@ -1,11 +1,11 @@
 "use client";
 
 const glass = {
-  background: "rgba(255,20,100,0.04)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(225,29,116,0.15)",
-  borderRadius: "16px",
+  background:          "var(--card-bg)",
+  backdropFilter:      "blur(20px)",
+  WebkitBackdropFilter:"blur(20px)",
+  border:              "1px solid var(--glass-border)",
+  borderRadius:        "16px",
 };
 
 function scoreColor(score) {
@@ -25,7 +25,7 @@ export function SectionScores({ sectionScores, animate }) {
 
   return (
     <div className="p-6 animate-fadeInUp" style={{ ...glass, animationDelay: "150ms", animationFillMode: "both" }}>
-      <h3 className="text-sm font-bold tracking-wide uppercase mb-5 flex items-center gap-2" style={{ color: "#f9a8d4" }}>
+      <h3 className="text-sm font-bold tracking-wide uppercase mb-5 flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
         <span>📊</span> Section Breakdown
       </h3>
       <div className="space-y-3.5">
@@ -35,7 +35,7 @@ export function SectionScores({ sectionScores, animate }) {
           return (
             <div key={key}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: "rgba(249,168,212,0.6)" }}>
+                <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--text-label)" }}>
                   <span>{icon}</span>{label}
                 </span>
                 <span className="text-xs font-bold" style={{ color: hex }}>{val}</span>

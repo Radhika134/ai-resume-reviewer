@@ -27,9 +27,9 @@ function useCountUp(target, duration = 1500, active = false) {
 }
 
 export function ScoreRing({ score, animate }) {
-  const radius = 54;
+  const radius       = 54;
   const circumference = 2 * Math.PI * radius;
-  const displayScore = useCountUp(score, 1500, animate);
+  const displayScore  = useCountUp(score, 1500, animate);
   const { hex, label } = scoreColor(score);
   const offset = circumference - (displayScore / 100) * circumference;
 
@@ -43,18 +43,15 @@ export function ScoreRing({ score, animate }) {
         />
 
         <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
-          {/* Define linear gradient for the ring stroke */}
           <defs>
             <linearGradient id="pinkGold" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%"   stopColor="#e11d74" />
               <stop offset="100%" stopColor="#f59e0b" />
             </linearGradient>
           </defs>
-
           {/* Track */}
           <circle cx="64" cy="64" r={radius} fill="none" stroke="rgba(225,29,116,0.12)" strokeWidth="10" />
-
-          {/* Progress arc — always uses pink-gold gradient */}
+          {/* Progress arc */}
           <circle
             cx="64" cy="64" r={radius}
             fill="none"
@@ -73,12 +70,12 @@ export function ScoreRing({ score, animate }) {
           ) : (
             <span className="score-gradient-text text-4xl font-extrabold">{displayScore}</span>
           )}
-          <span className="text-[11px] font-medium tracking-wide" style={{ color: "rgba(249,168,212,0.5)" }}>/ 100</span>
+          <span className="text-[11px] font-medium tracking-wide" style={{ color: "var(--text-label)" }}>/ 100</span>
         </div>
       </div>
 
       <div className="flex flex-col items-center gap-0.5">
-        <p className="text-sm font-semibold tracking-wide uppercase" style={{ color: "#f9a8d4" }}>AI Final Score</p>
+        <p className="text-sm font-semibold tracking-wide uppercase" style={{ color: "var(--text-muted)" }}>AI Final Score</p>
         <span
           className="text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-tighter"
           style={{ color: hex, backgroundColor: `${hex}18`, border: `1px solid ${hex}35` }}

@@ -2,11 +2,17 @@
 
 import { useState } from "react";
 
-/* ── colour helpers ── */
+/* -- colour helpers -- */
 const scoreClr  = (v) => v >= 80 ? [34,197,94]  : v >= 50 ? [245,158,11] : [239,68,68];
 const scoreLabel= (v) => v >= 80 ? "Excellent"   : v >= 50 ? "Good"       : "Needs Work";
 const matchClr  = (v) => v > 70  ? [34,197,94]  : v >= 50 ? [245,158,11] : [239,68,68];
 const matchLabel= (v) => v > 70  ? "Strong Match": v >= 50 ? "Partial Match" : "Low Match";
+
+const getAlertStyle = (v) => {
+  if (v >= 80) return { text: [21,128,61], bg: [240,253,244], border: [187,247,208] };
+  if (v >= 50) return { text: [180,83,9],  bg: [255,251,235], border: [254,243,199] };
+  return          { text: [185,28,28],     bg: [254,242,242], border: [254,226,226] };
+};
 
 export function DownloadPDFButton({ results, jobRole }) {
   const [downloading, setDownloading] = useState(false);
@@ -18,451 +24,434 @@ export function DownloadPDFButton({ results, jobRole }) {
     try {
       const { default: jsPDF } = await import("jspdf");
 
-      /* ── constants ── */
       const PAGE_W   = 210;
       const PAGE_H   = 297;
       const MARGIN   = 16;
       const COL_W    = PAGE_W - MARGIN * 2;
-      const SAFE_BOT = 274;           // don't render below this y
-      const BG       = [13, 13, 18]; // dark page bg
+      const SAFE_BOT = 274;
+      const BG       = [255, 255, 255];
 
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       let y = 0;
 
-      /* ── helpers ── */
-
-      /** Paint the dark background for the current page */
       function paintBg() {
         doc.setFillColor(...BG);
         doc.rect(0, 0, PAGE_W, PAGE_H, "F");
       }
 
-      /** Draw a hairline separator and advance y */
       function rule(gap = 5) {
-        doc.setDrawColor(255, 255, 255);
-        doc.setGState(doc.GState({ opacity: 0.07 }));
+        doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.25);
         doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-        doc.setGState(doc.GState({ opacity: 1 }));
         y += gap;
       }
 
-      /**
-       * Ensure there is `needed` mm of space left on the page.
-       * If not, add a new page, paint it, and reset y.
-       */
       function ensureSpace(needed) {
         if (y + needed > SAFE_BOT) {
           doc.addPage();
           paintBg();
-          // Re-draw footer zone placeholder
-          y = 20;
+          drawSubsequentHeader();
+          y = 22;
         }
       }
 
-      /**
-       * Draw a section heading with a left accent bar.
-       * Returns after advancing y.
-       */
+      function drawSubsequentHeader() {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(79, 70, 229);
+        doc.text("ResumeAI", MARGIN, 11);
+        const logoW = doc.getTextWidth("ResumeAI");
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("  Audit Report", MARGIN + logoW, 11);
+        const roleText = jobRole?.trim() ? `Target Role: ${jobRole.trim()}` : "General Resume Audit";
+        doc.setFontSize(7.5);
+        doc.text(roleText, PAGE_W - MARGIN, 11, { align: "right" });
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.2);
+        doc.line(MARGIN, 14, PAGE_W - MARGIN, 14);
+      }
+
       function sectionHeading(text, rgb) {
         ensureSpace(14);
         doc.setFillColor(...rgb);
         doc.rect(MARGIN, y - 3, 3, 8, "F");
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(...rgb);
+        doc.setTextColor(15, 23, 42);
         doc.text(text, MARGIN + 6, y + 3);
         y += 10;
       }
 
-      /**
-       * Draw a text item inside a colour-tinted box.
-       * The box height is computed from the wrapped line count.
-       */
-      function listItem(text, bgRgb, textRgb, maxW = COL_W - 10) {
-        const lines = doc.splitTextToSize(text, maxW);
+      function listItem(text, bgRgb, borderRgb, textRgb = [51,65,85], maxW = COL_W - 12) {
+        const lines  = doc.splitTextToSize(text, maxW);
         const LINE_H = 4.2;
         const PAD    = 3.5;
         const boxH   = lines.length * LINE_H + PAD * 2;
         ensureSpace(boxH + 3);
         doc.setFillColor(...bgRgb);
-        doc.roundedRect(MARGIN, y, COL_W, boxH, 2, 2, "F");
+        doc.roundedRect(MARGIN, y, COL_W, boxH, 1.5, 1.5, "F");
+        doc.setFillColor(...borderRgb);
+        doc.rect(MARGIN, y, 2.5, boxH, "F");
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(MARGIN, y, COL_W, boxH, 1.5, 1.5, "D");
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...textRgb);
-        doc.text(lines, MARGIN + 5, y + PAD + LINE_H * 0.7);
+        doc.text(lines, MARGIN + 6, y + PAD + LINE_H * 0.7);
         y += boxH + 3;
       }
 
-      /* ================================================================
-         PAGE 1  —  header + score overview
-      ================================================================ */
+      /* --- PAGE 1: Header --- */
       paintBg();
 
-      /* rose gold header band */
-      doc.setFillColor(180, 20, 90);
-      doc.rect(0, 0, PAGE_W, 34, "F");
+      doc.setFillColor(79, 70, 229);
+      doc.rect(0, 0, PAGE_W, 3, "F");
 
-      /* logo */
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
-      doc.text("Resume", MARGIN, 15);
-      doc.setTextColor(255, 180, 200);
-      doc.text("AI", MARGIN + 32, 15);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Resume", MARGIN, 18);
+      const resW = doc.getTextWidth("Resume");
+      doc.setTextColor(79, 70, 229);
+      doc.text("AI", MARGIN + resW + 1, 18);
 
-      /* subtitle */
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(255, 220, 230);
-      doc.text("AI-Powered Resume Analysis Report", MARGIN, 23);
+      doc.setTextColor(100, 116, 139);
+      doc.text("AI-Powered Resume Analysis Report", MARGIN, 25);
 
-      /* date top-right */
-      const dateStr = new Date().toLocaleDateString("en-IN", {
-        day: "2-digit", month: "long", year: "numeric",
-      });
-      doc.text(dateStr, PAGE_W - MARGIN, 23, { align: "right" });
+      const dateStr = new Date().toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" });
+      doc.text(dateStr, PAGE_W - MARGIN, 25, { align: "right" });
 
-      y = 42;
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.line(MARGIN, 29, PAGE_W - MARGIN, 29);
 
-      /* ── Target Role ── */
-      if (jobRole?.trim()) {
-        doc.setFontSize(8.5);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(180, 20, 90);
-        doc.text("TARGET ROLE", MARGIN, y);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(220, 220, 230);
-        doc.text(jobRole.trim(), MARGIN + 28, y);
-        y += 9;
-      }
+      y = 38;
 
-      /* ── Score block ── */
-      const sv   = results.score ?? 0;
-      const sClr = scoreClr(sv);
+      /* --- Target Role --- */
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(79, 70, 229);
+      doc.text(jobRole?.trim() ? "TARGET ROLE:" : "AUDIT MODE:", MARGIN, y);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(51, 65, 85);
+      doc.text(jobRole?.trim() ? jobRole.trim() : "General Resume Audit", MARGIN + 30, y);
+      y += 8;
 
-      // big score number — width-safe offset
-      doc.setFontSize(48);
+      /* --- Score Block --- */
+      const sv     = results.score ?? 0;
+      const sClr   = scoreClr(sv);
+      const slStyle = getAlertStyle(sv);
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.25);
+      doc.roundedRect(MARGIN, y, COL_W, 20, 2, 2, "FD");
+
+      doc.setFontSize(28);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...sClr);
-      doc.text(`${sv}`, MARGIN, y + 10);
-
+      doc.text(`${sv}`, MARGIN + 6, y + 14);
       const numW = doc.getTextWidth(`${sv}`);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text("/ 100", MARGIN + 7 + numW, y + 14);
 
-      doc.setFontSize(13);
-      doc.setTextColor(120, 120, 130);
-      doc.text("/ 100", MARGIN + numW + 2, y + 10);
+      const slabel = scoreLabel(sv);
+      const slW = doc.getTextWidth(slabel) + 6;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setFillColor(...slStyle.bg);
+      doc.setDrawColor(...slStyle.border);
+      doc.roundedRect(MARGIN + 7 + numW + 14, y + 7, slW, 6, 1.5, 1.5, "FD");
+      doc.setTextColor(...slStyle.text);
+      doc.text(slabel, MARGIN + 10 + numW + 14, y + 11.2);
 
       doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(71, 85, 105);
+      doc.text("OVERALL AI RATING", PAGE_W - MARGIN - 6, y + 9, { align: "right" });
+      doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(...sClr);
-      // score label pill
-      const slabel = scoreLabel(sv);
-      const slW    = doc.getTextWidth(slabel) + 6;
-      doc.setFillColor(...sClr.map(c => Math.round(c * 0.2)));
-      doc.roundedRect(MARGIN, y + 12, slW, 5.5, 1.5, 1.5, "F");
-      doc.setTextColor(...sClr);
-      doc.text(slabel, MARGIN + 3, y + 16);
-      y += 24;
+      doc.setTextColor(148, 163, 184);
+      doc.text("Based on standard recruiter scanning criteria", PAGE_W - MARGIN - 6, y + 13.5, { align: "right" });
 
+      y += 24;
       rule(6);
 
-      /* ── ATS · Keywords · Formatting badges ── */
+      /* --- Badges: ATS / Keywords / Formatting --- */
       const badges = [
-        { label: "ATS Ready",  value: results.atsReady ? "✓ Pass" : "✗ Fail",
-          clr: results.atsReady ? [34,197,94] : [239,68,68] },
-        { label: "Keywords",   value: results.keywords ?? "—",
-          clr: results.keywords === "Strong" ? [147,51,234] : results.keywords === "Weak" ? [239,68,68] : [59,130,246] },
-        { label: "Formatting", value: results.formatting ?? "—",
-          clr: results.formatting === "Clean" ? [59,130,246] : results.formatting === "Messy" ? [239,68,68] : [147,51,234] },
+        { label: "ATS Ready",  value: results.atsReady ? "Pass" : "Fail",
+          theme: results.atsReady ? { bg:[240,253,244], text:[21,128,61], border:[187,247,208] } : { bg:[254,242,242], text:[185,28,28], border:[254,226,226] } },
+        { label: "Keywords",   value: results.keywords ?? "-",
+          theme: results.keywords==="Strong" ? { bg:[240,253,244], text:[21,128,61], border:[187,247,208] }
+               : results.keywords==="Weak"   ? { bg:[254,242,242], text:[185,28,28], border:[254,226,226] }
+               :                               { bg:[255,251,235], text:[180,83,9],  border:[254,243,199] } },
+        { label: "Formatting", value: results.formatting ?? "-",
+          theme: results.formatting==="Clean" ? { bg:[240,253,244], text:[21,128,61], border:[187,247,208] }
+               : results.formatting==="Messy" ? { bg:[254,242,242], text:[185,28,28], border:[254,226,226] }
+               :                               { bg:[239,246,255], text:[29,78,216],  border:[191,219,254] } },
       ];
-
       const bW = (COL_W - 6) / 3;
       badges.forEach((b, i) => {
         const bx = MARGIN + i * (bW + 3);
-        const [br,bg,bb] = b.clr;
-        doc.setFillColor(Math.round(br*0.15+13), Math.round(bg*0.15+13), Math.round(bb*0.15+18));
-        doc.roundedRect(bx, y, bW, 16, 2.5, 2.5, "F");
+        doc.setFillColor(...b.theme.bg);
+        doc.setDrawColor(...b.theme.border);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(bx, y, bW, 16, 2, 2, "FD");
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(...b.clr);
-        doc.text(b.value, bx + bW / 2, y + 7, { align: "center" });
+        doc.setTextColor(...b.theme.text);
+        doc.text(b.value, bx + bW / 2, y + 6.5, { align: "center" });
         doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(120, 120, 135);
-        doc.text(b.label, bx + bW / 2, y + 13, { align: "center" });
+        doc.setTextColor(100, 116, 139);
+        doc.text(b.label, bx + bW / 2, y + 12.5, { align: "center" });
       });
-      y += 22;
-
+      y += 20;
       rule(6);
 
-      /* ── Job Match band (only if JD provided) ── */
+      /* --- Job Match --- */
       if (results.matchPercentage != null && results.matchPercentage > 0) {
         ensureSpace(28);
-        const mp   = results.matchPercentage;
-        const mClr = matchClr(mp);
-        const mLbl = matchLabel(mp);
-
-        // tinted background row
-        doc.setFillColor(...mClr.map(c => Math.round(c * 0.1 + 5)));
-        doc.roundedRect(MARGIN, y, COL_W, 20, 3, 3, "F");
-
-        // left: percentage
+        const mp     = results.matchPercentage;
+        const mClr   = matchClr(mp);
+        const mStyle = getAlertStyle(mp);
+        doc.setFillColor(...mStyle.bg);
+        doc.setDrawColor(...mStyle.border);
+        doc.setLineWidth(0.25);
+        doc.roundedRect(MARGIN, y, COL_W, 20, 2, 2, "FD");
         doc.setFontSize(20);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...mClr);
-        doc.text(`${mp}%`, MARGIN + 5, y + 13);
-
+        doc.text(`${mp}%`, MARGIN + 6, y + 13);
         const pctW = doc.getTextWidth(`${mp}%`);
-
-        // label pill
-        doc.setFontSize(7);
-        doc.setTextColor(...mClr);
-        doc.text(mLbl, MARGIN + 6 + pctW, y + 8);
-
-        // analysis text
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...mStyle.text);
+        doc.text(matchLabel(mp), MARGIN + 10 + pctW, y + 8);
         if (results.matchAnalysis) {
           doc.setFontSize(7.5);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(190, 190, 200);
-          const aLines = doc.splitTextToSize(results.matchAnalysis, COL_W - 50);
-          doc.text(aLines, MARGIN + 6 + pctW, y + 14);
+          doc.setTextColor(51, 65, 85);
+          const aLines = doc.splitTextToSize(results.matchAnalysis, COL_W - pctW - 20);
+          doc.text(aLines, MARGIN + 10 + pctW, y + 13.5);
         }
-
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(120,120,135);
-        doc.text("JD MATCH", PAGE_W - MARGIN - 2, y + 5, { align: "right" });
-
-        y += 25;
+        doc.setTextColor(100, 116, 139);
+        doc.text("JD MATCH", PAGE_W - MARGIN - 6, y + 5, { align: "right" });
+        y += 24;
         rule(6);
       }
 
-      /* ── Section Scores ── */
+      /* --- Section Scores --- */
       if (results.sectionScores) {
-        sectionHeading("Section Breakdown", [180, 140, 255]);
-        const secs = [
-          ["experience","Experience"],
-          ["skills","Skills"],
-          ["education","Education"],
-          ["formatting","Formatting"],
-          ["impact","Impact"],
-        ];
+        sectionHeading("Section Breakdown", [79, 70, 229]);
+        const secs = [["experience","Experience"],["skills","Skills"],["education","Education"],["formatting","Formatting"],["impact","Impact"]];
         secs.forEach(([key, label]) => {
           const val = results.sectionScores[key] ?? 0;
           const clr = scoreClr(val);
           ensureSpace(10);
-
           doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(155, 155, 170);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(71, 85, 105);
           doc.text(label, MARGIN, y + 3);
-
-          // value
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...clr);
           doc.text(`${val}`, PAGE_W - MARGIN, y + 3, { align: "right" });
-
-          // track
-          doc.setFillColor(35, 35, 45);
-          doc.roundedRect(MARGIN + 28, y + 0.5, COL_W - 35, 3.5, 1, 1, "F");
-          // fill
+          doc.setFillColor(241, 245, 249);
+          doc.roundedRect(MARGIN + 28, y + 0.5, COL_W - 35, 3, 0.7, 0.7, "F");
           const fillW = Math.max(3, (COL_W - 35) * (val / 100));
           doc.setFillColor(...clr);
-          doc.roundedRect(MARGIN + 28, y + 0.5, fillW, 3.5, 1, 1, "F");
-
+          doc.roundedRect(MARGIN + 28, y + 0.5, fillW, 3, 0.7, 0.7, "F");
           y += 9;
         });
         y += 2;
         rule(6);
       }
 
-      /* ── Resume Checklist ── */
+      /* --- Checklist --- */
       if (results.checklist) {
-        sectionHeading("Resume Fundamentals Checklist", [200, 200, 215]);
+        sectionHeading("Resume Fundamentals Checklist", [79, 70, 229]);
         const items = [
-          ["hasContactInfo","Contact Info"],
-          ["hasLinkedIn","LinkedIn / Portfolio"],
-          ["hasMetrics","Quantified Metrics"],
-          ["hasActionVerbs","Action Verbs"],
-          ["hasSummary","Professional Summary"],
-          ["hasCertifications","Certifications"],
+          ["hasContactInfo","Contact Info"],["hasLinkedIn","LinkedIn / Portfolio"],
+          ["hasMetrics","Quantified Metrics"],["hasActionVerbs","Action Verbs"],
+          ["hasSummary","Professional Summary"],["hasCertifications","Certifications"],
         ];
         const itemW = COL_W / 2 - 3;
         items.forEach(([key, label], idx) => {
           if (idx % 2 === 0) ensureSpace(8);
-          const pass = results.checklist[key];
-          const clr  = pass ? [34,197,94] : [239,68,68];
-          const bx   = MARGIN + (idx % 2) * (itemW + 6);
-          const by   = y;
-          doc.setFillColor(...clr.map(c => Math.round(c * 0.12 + 10)));
-          doc.roundedRect(bx, by, itemW, 6.5, 1.5, 1.5, "F");
-          doc.setFontSize(7.5);
+          const pass   = results.checklist[key];
+          const cStyle = pass
+            ? { bg:[240,253,244], text:[21,128,61],  border:[187,247,208] }
+            : { bg:[254,242,242], text:[185,28,28],  border:[254,226,226] };
+          const bx = MARGIN + (idx % 2) * (itemW + 6);
+          doc.setFillColor(...cStyle.bg);
+          doc.setDrawColor(...cStyle.border);
+          doc.setLineWidth(0.2);
+          doc.roundedRect(bx, y, itemW, 6.5, 1.2, 1.2, "FD");
+          doc.setFontSize(8);
           doc.setFont("helvetica", "bold");
-          doc.setTextColor(...clr);
-          doc.text(pass ? "✓" : "✗", bx + 3.5, by + 4.5);
+          doc.setTextColor(...cStyle.text);
+          doc.text(pass ? "+" : "-", bx + 3, y + 4.5);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(190, 190, 205);
-          doc.text(label, bx + 9, by + 4.5);
-          if (idx % 2 === 1) y += 9;
+          doc.setFontSize(7.5);
+          doc.setTextColor(51, 65, 85);
+          doc.text(label, bx + 8.5, y + 4.5);
+          if (idx % 2 === 1) y += 8.5;
         });
-        if (items.length % 2 !== 0) y += 9;
+        if (items.length % 2 !== 0) y += 8.5;
         y += 2;
         rule(6);
       }
 
-      /* ── Strengths ── */
+      /* --- Strengths --- */
       if (results.strengths?.length) {
-        sectionHeading("Strengths", [34,197,94]);
-        results.strengths.forEach(s => {
-          listItem(`• ${s}`, [15,45,25], [150,230,170]);
-        });
-        y += 2;
-        rule(6);
+        sectionHeading("Strengths", [34, 197, 94]);
+        results.strengths.forEach(s => listItem(s, [240,253,244], [34,197,94]));
+        y += 2; rule(6);
       }
 
-      /* ── Weaknesses / Improvements ── */
+      /* --- Weaknesses --- */
       if (results.weaknesses?.length) {
-        sectionHeading("Areas for Improvement", [239,68,68]);
-        results.weaknesses.forEach(w => {
-          listItem(`• ${w}`, [45,15,15], [240,145,145]);
-        });
-        y += 2;
-        rule(6);
+        sectionHeading("Areas for Improvement", [239, 68, 68]);
+        results.weaknesses.forEach(w => listItem(w, [254,242,242], [239,68,68]));
+        y += 2; rule(6);
       }
 
-      /* ── Strategy Suggestions ── */
+      /* --- Suggestions --- */
       if (results.suggestions?.length) {
-        sectionHeading("Smart Strategy Advice", [168,120,255]);
-        results.suggestions.forEach(s => {
-          listItem(`• ${s}`, [35,18,70], [200,165,255]);
-        });
-        y += 2;
-        rule(6);
+        sectionHeading("Smart Strategy Advice", [79, 70, 229]);
+        results.suggestions.forEach(s => listItem(s, [245,243,255], [99,102,241]));
+        y += 2; rule(6);
       }
 
-      /* ── Detected Skills ── */
+      /* --- Skill Tags --- */
       if (results.skillTags?.length) {
-        sectionHeading("Detected Skills & Themes", [200,200,215]);
+        sectionHeading("Detected Skills & Themes", [79, 70, 229]);
         ensureSpace(14);
         let tx = MARGIN;
         results.skillTags.forEach(skill => {
           doc.setFontSize(7.5);
           doc.setFont("helvetica", "bold");
-          const tw = doc.getTextWidth(skill) + 8;
-          if (tx + tw > PAGE_W - MARGIN) {
-            tx = MARGIN;
-            y += 8;
-          }
+          const tw = doc.getTextWidth(skill) + 6;
+          if (tx + tw > PAGE_W - MARGIN) { tx = MARGIN; y += 8; }
           ensureSpace(9);
-          doc.setFillColor(55, 28, 90);
-          doc.roundedRect(tx, y, tw, 6, 1.5, 1.5, "F");
-          doc.setTextColor(175, 135, 255);
-          doc.text(skill, tx + 4, y + 4.3);
-          tx += tw + 3;
+          doc.setFillColor(243, 232, 255);
+          doc.setDrawColor(233, 213, 252);
+          doc.setLineWidth(0.2);
+          doc.roundedRect(tx, y, tw, 6, 1.2, 1.2, "FD");
+          doc.setTextColor(109, 40, 217);
+          doc.text(skill, tx + 3, y + 4.3);
+          tx += tw + 2.5;
         });
-        y += 10;
-        rule(6);
+        y += 10; rule(6);
       }
 
-      /* ── Missing Keywords ── */
+      /* --- Missing Keywords --- */
       if (results.missingKeywords?.length) {
-        sectionHeading("Missing Keywords for Role", [239,68,68]);
+        sectionHeading("Missing Keywords for Role", [239, 68, 68]);
         ensureSpace(10);
         let kx = MARGIN;
         results.missingKeywords.forEach(kw => {
           doc.setFontSize(7.5);
           doc.setFont("helvetica", "bold");
-          const kw_w = doc.getTextWidth(kw) + 8;
-          if (kx + kw_w > PAGE_W - MARGIN) {
-            kx = MARGIN;
-            y += 8;
-          }
+          const kw_w = doc.getTextWidth(kw) + 6;
+          if (kx + kw_w > PAGE_W - MARGIN) { kx = MARGIN; y += 8; }
           ensureSpace(9);
-          doc.setFillColor(55, 15, 15);
-          doc.roundedRect(kx, y, kw_w, 6, 1.5, 1.5, "F");
-          doc.setTextColor(240, 130, 130);
-          doc.text(kw, kx + 4, y + 4.3);
-          kx += kw_w + 3;
+          doc.setFillColor(254, 242, 242);
+          doc.setDrawColor(254, 226, 226);
+          doc.setLineWidth(0.2);
+          doc.roundedRect(kx, y, kw_w, 6, 1.2, 1.2, "FD");
+          doc.setTextColor(185, 28, 28);
+          doc.text(kw, kx + 3, y + 4.3);
+          kx += kw_w + 2.5;
         });
-        y += 10;
-        rule(6);
+        y += 10; rule(6);
       }
 
-      /* ── Project Suggestions ── */
+      /* --- Project Suggestions --- */
       if (results.projectSuggestions?.length) {
-        sectionHeading("Career Boost Projects", [245,158,11]);
-        results.projectSuggestions.forEach((p, i) => {
-          listItem(`${i + 1}.  ${p}`, [40,28,10], [248,210,130]);
-        });
-        y += 2;
-        rule(6);
+        sectionHeading("Career Boost Projects", [245, 158, 11]);
+        results.projectSuggestions.forEach(p => listItem(p, [254,243,199], [245,158,11]));
+        y += 2; rule(6);
       }
 
-      /* ── Rewritten Bullets ── */
+      /* --- Rewritten Bullets --- */
       if (results.rewrittenBullets?.length) {
-        sectionHeading("Tailored Bullet Rewrites", [34,197,94]);
+        sectionHeading("Tailored Bullet Rewrites", [34, 197, 94]);
         results.rewrittenBullets.forEach((b, i) => {
-          // label row
           ensureSpace(6);
-          doc.setFontSize(7);
+          doc.setFontSize(8);
           doc.setFont("helvetica", "bold");
-          doc.setTextColor(120,120,135);
-          doc.text(`BULLET ${i + 1}`, MARGIN, y + 3);
+          doc.setTextColor(100, 116, 139);
+          doc.text(`BULLET OPTIMIZATION ${i + 1}`, MARGIN, y + 3);
           y += 6;
 
-          // original
-          const origLines = doc.splitTextToSize(`${b.original}`, COL_W - 10);
-          const origH = origLines.length * 4.2 + 7;
+          const origLines = doc.splitTextToSize(`${b.original}`, COL_W - 14);
+          const origH = origLines.length * 4.2 + 8;
           ensureSpace(origH + 2);
-          doc.setFillColor(40,15,15);
-          doc.roundedRect(MARGIN, y, COL_W, origH, 2, 2, "F");
-          doc.setFontSize(7);
+          doc.setFillColor(254, 242, 242);
+          doc.roundedRect(MARGIN, y, COL_W, origH, 1.5, 1.5, "F");
+          doc.setFillColor(239, 68, 68);
+          doc.rect(MARGIN, y, 2.5, origH, "F");
+          doc.setDrawColor(254, 226, 226);
+          doc.setLineWidth(0.2);
+          doc.roundedRect(MARGIN, y, COL_W, origH, 1.5, 1.5, "D");
+          doc.setFontSize(7.5);
           doc.setFont("helvetica", "bold");
-          doc.setTextColor(220, 80, 80);
-          doc.text("ORIGINAL", MARGIN + 4, y + 4);
+          doc.setTextColor(185, 28, 28);
+          doc.text("ORIGINAL", MARGIN + 5, y + 4.5);
           doc.setFont("helvetica", "italic");
-          doc.setTextColor(200,120,120);
-          doc.text(origLines, MARGIN + 4, y + 9);
+          doc.setTextColor(51, 65, 85);
+          doc.text(origLines, MARGIN + 5, y + 9.5);
           y += origH + 2;
 
-          // improved
-          const impLines = doc.splitTextToSize(`${b.improved}`, COL_W - 10);
-          const impH  = impLines.length * 4.2 + 7;
-          ensureSpace(impH + 4);
-          doc.setFillColor(10,40,22);
-          doc.roundedRect(MARGIN, y, COL_W, impH, 2, 2, "F");
-          doc.setFontSize(7);
+          const impLines = doc.splitTextToSize(`${b.improved}`, COL_W - 14);
+          const impH = impLines.length * 4.2 + 8;
+          ensureSpace(impH + 5);
+          doc.setFillColor(240, 253, 244);
+          doc.roundedRect(MARGIN, y, COL_W, impH, 1.5, 1.5, "F");
+          doc.setFillColor(34, 197, 94);
+          doc.rect(MARGIN, y, 2.5, impH, "F");
+          doc.setDrawColor(187, 247, 208);
+          doc.setLineWidth(0.2);
+          doc.roundedRect(MARGIN, y, COL_W, impH, 1.5, 1.5, "D");
+          doc.setFontSize(7.5);
           doc.setFont("helvetica", "bold");
-          doc.setTextColor(60, 200, 100);
-          doc.text("AI OPTIMIZED", MARGIN + 4, y + 4);
+          doc.setTextColor(21, 128, 61);
+          doc.text("AI OPTIMIZED", MARGIN + 5, y + 4.5);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(140,225,160);
-          doc.text(impLines, MARGIN + 4, y + 9);
+          doc.setTextColor(51, 65, 85);
+          doc.text(impLines, MARGIN + 5, y + 9.5);
           y += impH + 6;
         });
         rule(6);
       }
 
-      /* ── Footer on every page ── */
+      /* --- Footer on every page --- */
       const totalPages = doc.getNumberOfPages();
       for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p);
-        // footer bar
-        doc.setFillColor(22, 18, 35);
-        doc.rect(0, PAGE_H - 12, PAGE_W, 12, "F");
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.2);
+        doc.line(MARGIN, PAGE_H - 10, PAGE_W - MARGIN, PAGE_H - 10);
         doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(90, 80, 110);
+        doc.setTextColor(148, 163, 184);
         doc.text(
-          `ResumeAI  ·  AI-Powered Resume Review  ·  Page ${p} of ${totalPages}`,
+          `ResumeAI  .  AI-Powered Resume Audit  .  Page ${p} of ${totalPages}`,
           PAGE_W / 2,
-          PAGE_H - 4.5,
+          PAGE_H - 6,
           { align: "center" }
         );
       }
 
-      /* ── Save ── */
+      /* --- Save --- */
       const safeName = jobRole
         ? jobRole.trim().replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")
         : "General";
@@ -493,7 +482,7 @@ export function DownloadPDFButton({ results, jobRole }) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
             </svg>
-            Generating…
+            Generating...
           </>
         ) : (
           <>

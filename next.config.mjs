@@ -29,6 +29,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
+      "media-src 'self' https://d8j0ntlcm91z4.cloudfront.net",
       "connect-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
